@@ -1,0 +1,25 @@
+import streamlit as st
+import yfinance as yf
+import pandas as pd
+
+st.set_page_config(page_title="findequity", layout="wide")
+st.title("📈 findequity - Nifty 500 Screener")
+
+stocks = pd.read_html("https://www.moneycontrol.com/markets/indian-indices/top-nse500-companies-list/9")[0]
+symbols = stocks['Company Name'].tolist()
+
+selected_stock = st.selectbox("Choose a Nifty 500 Stock", symbols)
+
+timeframe = st.selectbox("Select Timeframe", ["1d", "1h", "2h", "4h"])
+period = st.selectbox("Select Data Period", ["1mo", "3mo", "6mo"])
+
+data = yf.download(selected_stock + ".NS", period=period, interval=timeframe)
+
+if not data.empty:
+    data["20 EMA"] = data["Close"].ewm(span=20, adjust=False).mean()
+    data["30 SMA"] = data["Close"].rolling(window=30).mean()
+    data["200 EMA"] = data["Close"].ewm(span=200, adjust=False).mean()
+
+    st.line_chart(data[["Close", "20 EMA", "30 SMA", "200 EMA"]])
+else:
+    st.warning("No data found.")
